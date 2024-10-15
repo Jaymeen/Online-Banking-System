@@ -24,6 +24,8 @@ LoginResult VerifyEmployeeCredentialsAndRole(int socketfd, Credentials * creds, 
 void GetManagerMenuResponse(int socketfd);
 void GetEmployeeMenuResponse(int socketfd);
 void AddNewCustomer(int socketfd);
+LoginResult VerifyCustomerCredentials(int socketfd, Credentials * creds);
+void GetCustomerMenuResponse(int socketfd);
 
 int main() {
 	init();
@@ -84,6 +86,15 @@ void GetWelcomeMenuResponse(int socketfd) {
 	switch (responseValue)
 	{
 		case 1: 
+			LoginResult result = VerifyCustomerCredentials(socketfd, &creds);
+
+			if(result != LOGIN_SUCCESSFUL) {
+				GetWelcomeMenuResponse(socketfd);
+			}
+			else {
+				GetCustomerMenuResponse(socketfd);
+			}
+
 			break;
 		
 		case 2: 
@@ -393,4 +404,70 @@ void AddNewCustomer(int socketfd) {
 	close(fd1);
 
 	send(socketfd, customer.userid, strlen(customer.userid), 0);
+}
+
+LoginResult VerifyCustomerCredentials(int socketfd, Credentials * creds) {
+	char currCustomerDirectoryPath[230];
+
+	strcpy(currCustomerDirectoryPath, customersDirectoryPath);
+	strcat(currCustomerDirectoryPath, "/");
+	strcat(currCustomerDirectoryPath, creds->loginId);
+
+	LoginResult result;
+	
+	if(access(currCustomerDirectoryPath, F_OK) == -1) {
+		result = LOGIN_ID_NOT_FOUND;
+
+		send(socketfd, &result, sizeof(result), 0);
+
+		return result;
+	}
+
+	CustomerInformation customer;
+
+	char currCustomerDetailsFilePath[237];
+
+	strcpy(currCustomerDetailsFilePath, currCustomerDirectoryPath);
+	strcat(currCustomerDetailsFilePath, "/details");
+
+	int fd = open(currCustomerDetailsFilePath, O_RDONLY, S_IRUSR | S_IWUSR);
+
+	AcquireReadLock(fd);
+
+	read(fd, &customer, sizeof(CustomerInformation));
+
+	UnLockFile(fd);
+
+	close(fd);
+
+	if(strcmp(creds->password, customer.password) != 0) {
+		result = PASSWORD_MISMATCH;
+	}
+	else {
+		result = LOGIN_SUCCESSFUL;
+	}
+
+	send(socketfd, &result, sizeof(result), 0);
+
+	return result;
+}
+
+void GetCustomerMenuResponse(int socketfd) {
+	int responseValue;
+
+	read(socketfd, &responseValue, sizeof(responseValue));
+
+	responseValue = ntohl(responseValue);
+
+	switch(responseValue) {
+		case 1: 
+			break;
+		
+		case 2:
+			break;
+		
+		default: 
+			GetWelcomeMenuResponse(socketfd);
+			break;
+	}
 }

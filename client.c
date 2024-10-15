@@ -18,6 +18,7 @@ void AddNewEmployee(int socketfd);
 void SendManagerMenuResponse(int socketfd);
 void SendEmployeeMenuResponse(int socketfd);
 void AddNewCustomer(int socketfd);
+void SendCustomerMenuResponse(int socketfd);
 
 int main() {
     int sock = 0;
@@ -83,6 +84,7 @@ void SendWelcomeMenuResponse(int socketfd) {
 	switch (val)
 	{
 		case 1:
+			SendCustomerMenuResponse(socketfd);
 			break;
 		
 		case 2: 
@@ -272,4 +274,30 @@ void AddNewCustomer(int socketfd) {
 	customer.userid[bytesRead] = '\0';
 
 	printf("\nEmployee Id of the new Employee is : %s\n", customer.userid);
+}
+
+void SendCustomerMenuResponse(int socketfd) {
+	printf("%s", customerMenu);
+
+	int val, response;
+
+	scanf("%d", &val);
+	getchar();
+
+	response = htonl(val);
+
+	send(socketfd, &response, sizeof(response), 0);
+
+	switch (val)
+	{
+		case 1:
+			break;
+		
+		case 2:
+			break;
+		
+		default:
+			SendWelcomeMenuResponse(socketfd);
+			break;
+	}
 }

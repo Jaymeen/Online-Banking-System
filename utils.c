@@ -22,6 +22,7 @@ char allLoansPath[208];
 
 char dataDirectoryPath[200];
 char employeesDirectoryPath[210]; 
+char customersDirectoryPath[210];
 
 void init() {
 	getcwd(dataDirectoryPath, 200);
@@ -36,6 +37,11 @@ void init() {
 	strcat(employeesDirectoryPath, "/employees");
 
 	mkdir(employeesDirectoryPath, 0755);
+
+	strcpy(customersDirectoryPath, dataDirectoryPath);
+	strcat(customersDirectoryPath, "/customers");
+
+	mkdir(customersDirectoryPath, 0755);
 
 	strcpy(customerIndexesFilePath, dataDirectoryPath);
 	strcat(customerIndexesFilePath, "/customerindexes");

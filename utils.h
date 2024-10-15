@@ -16,6 +16,7 @@ extern char allLoansPath[208];
 
 extern char dataDirectoryPath[200];
 extern char employeesDirectoryPath[210];
+extern char customersDirectoryPath[210];
 
 typedef enum {
 	ACTIVE,
@@ -52,6 +53,13 @@ typedef struct {
 	EmployeeType employeetype;
 	Status status;
 } EmployeeInformation;
+
+typedef struct {
+	PersonalInformation personalinformation;
+	char userid[14];
+	char password[20];
+	Status status;
+} CustomerInformation;
 
 void init();
 void AcquireWriteLock(int fd);

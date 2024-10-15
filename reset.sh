@@ -11,7 +11,12 @@ fi
 # Remove all files and directories inside the specified path
 rm -rf "$DIRECTORY_PATH"/*
 rm "client"
-rm "extra2"
+rm "extra"
 rm "server"
 
 echo "All files and directories in $DIRECTORY_PATH have been removed."
+
+gcc extra.c -o extra
+./extra
+
+echo "All required files have been re-created."

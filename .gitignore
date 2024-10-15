@@ -1,6 +1,7 @@
 server
 client
 extra.c
+extra
 data/
 
 .vscode

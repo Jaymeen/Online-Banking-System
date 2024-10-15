@@ -19,8 +19,11 @@ void GetCredentialsFromClient(int socketfd, Credentials *creds);
 LoginResult VerifyAdminCredentials(int socketfd, Credentials *creds);
 void GetAdminMenuResponse(int socketfd);
 void AddNewEmployee(int socketfd);
-int GetNewEmployeeIndex();
+int GetNewIndex(char * filePath);
 LoginResult VerifyEmployeeCredentialsAndRole(int socketfd, Credentials * creds, EmployeeType employeeType);
+void GetManagerMenuResponse(int socketfd);
+void GetEmployeeMenuResponse(int socketfd);
+void AddNewCustomer(int socketfd);
 
 int main() {
 	init();
@@ -90,6 +93,9 @@ void GetWelcomeMenuResponse(int socketfd) {
 			if(result != LOGIN_SUCCESSFUL) {
 				GetWelcomeMenuResponse(socketfd);
 			}
+			else {
+				GetEmployeeMenuResponse(socketfd);
+			}
 		}
 		break;
 		
@@ -99,6 +105,9 @@ void GetWelcomeMenuResponse(int socketfd) {
 
 			if(result != LOGIN_SUCCESSFUL) {
 				GetWelcomeMenuResponse(socketfd);
+			}
+			else {
+				GetManagerMenuResponse(socketfd);
 			}
 		}
 		break;
@@ -159,10 +168,16 @@ void GetAdminMenuResponse(int socketfd) {
 	responseValue = ntohl(responseValue);
 
 	switch(responseValue) {
-		case 1: AddNewEmployee(socketfd);
+		case 1: 
+			AddNewEmployee(socketfd);
+			GetAdminMenuResponse(socketfd);
 			break;
 		
 		case 2:
+			break;
+		
+		default:
+			GetWelcomeMenuResponse(socketfd);
 			break;
 	}
 }
@@ -172,7 +187,7 @@ void AddNewEmployee(int socketfd) {
 
 	read(socketfd, &employee, sizeof(EmployeeInformation));
 
-	int currentIndexValue = GetNewEmployeeIndex();
+	int currentIndexValue = GetNewIndex(employeeIndexesFilePath);
 	
 	char currentEmployeeId[14] = "emp-";
 	char buffer[10];
@@ -215,8 +230,8 @@ void AddNewEmployee(int socketfd) {
 	send(socketfd, employee.userid, strlen(employee.userid), 0);
 }
 
-int GetNewEmployeeIndex() {
-	int fd = open(employeeIndexesFilePath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+int GetNewIndex(char * filePath) {
+	int fd = open(filePath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
 
 	AcquireWriteLock(fd);
 
@@ -286,4 +301,96 @@ LoginResult VerifyEmployeeCredentialsAndRole(int socketfd, Credentials * creds, 
 	send(socketfd, &result, sizeof(result), 0);
 
 	return result;
+}
+
+void GetManagerMenuResponse(int socketfd) {
+	// Waiting for the response from the client
+	int responseValue;
+
+	read(socketfd, &responseValue, sizeof(responseValue));
+
+	responseValue = ntohl(responseValue);
+
+	switch(responseValue) {
+		case 1: 
+			break;
+		
+		case 2:
+			break;
+		
+		default: 
+			GetWelcomeMenuResponse(socketfd);
+			break;
+	}
+}
+
+void GetEmployeeMenuResponse(int socketfd) {
+	// Waiting for the response from the client
+	int responseValue;
+
+	read(socketfd, &responseValue, sizeof(responseValue));
+
+	responseValue = ntohl(responseValue);
+
+	switch(responseValue) {
+		case 1: 
+			AddNewCustomer(socketfd);
+			GetEmployeeMenuResponse(socketfd);
+			break;
+		
+		case 2:
+			break;
+		
+		default: 
+			GetWelcomeMenuResponse(socketfd);
+			break;
+	}
+}
+
+void AddNewCustomer(int socketfd) {
+	CustomerInformation customer;
+
+	read(socketfd, &customer, sizeof(CustomerInformation));
+
+	int currentIndexValue = GetNewIndex(customerIndexesFilePath);
+	
+	char currentCustomerId[14] = "cus-";
+	char buffer[10];
+
+	snprintf(buffer, sizeof(buffer), "%d", currentIndexValue);
+
+	strcat(currentCustomerId, buffer);
+
+	strcpy(customer.userid, currentCustomerId);
+
+	char currCustomerDirectoryPath[230];
+
+	strcpy(currCustomerDirectoryPath, customersDirectoryPath);
+	strcat(currCustomerDirectoryPath, "/");
+	strcat(currCustomerDirectoryPath, currentCustomerId);
+
+	mkdir(currCustomerDirectoryPath, 0755);
+
+	char currCustomerDetailsFilePath[237];
+	char currCustomerRequestedLoansFilePath[235];
+
+	strcpy(currCustomerDetailsFilePath, currCustomerDirectoryPath);
+	strcpy(currCustomerRequestedLoansFilePath, currCustomerDirectoryPath);
+
+	strcat(currCustomerDetailsFilePath, "/details");
+	strcat(currCustomerRequestedLoansFilePath, "/loans");
+
+	int fd1 = open(currCustomerDetailsFilePath, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+	int fd2 = creat(currCustomerRequestedLoansFilePath, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd1);
+
+	write(fd1, &customer, sizeof(CustomerInformation));
+
+	UnLockFile(fd1);
+
+	close(fd2);
+	close(fd1);
+
+	send(socketfd, customer.userid, strlen(customer.userid), 0);
 }

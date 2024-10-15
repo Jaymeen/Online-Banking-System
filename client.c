@@ -15,7 +15,9 @@ void SendWelcomeMenuResponse(int socketfd);
 LoginResult SendCredentialsToServer(int socketfd);
 void SendAdminMenuResponse(int socketfd);
 void AddNewEmployee(int socketfd);
-// void SendManagerMenuResponse(int socketfd);
+void SendManagerMenuResponse(int socketfd);
+void SendEmployeeMenuResponse(int socketfd);
+void AddNewCustomer(int socketfd);
 
 int main() {
     int sock = 0;
@@ -80,21 +82,24 @@ void SendWelcomeMenuResponse(int socketfd) {
 
 	switch (val)
 	{
-	case 1:
-		break;
-	
-	case 2:
-		break;
-	
-	case 3: // SendManagerMenuResponse(socketfd);
-		break;
-	
-	case 4: SendAdminMenuResponse(socketfd);
-		break;
+		case 1:
+			break;
+		
+		case 2: 
+			SendEmployeeMenuResponse(socketfd);
+			break;
+		
+		case 3: 
+			SendManagerMenuResponse(socketfd);
+			break;
+		
+		case 4: 
+			SendAdminMenuResponse(socketfd);
+			break;
 
-	default:
-		SendWelcomeMenuResponse(socketfd);
-		break;
+		default:
+			SendWelcomeMenuResponse(socketfd);
+			break;
 	}
 }
 
@@ -132,10 +137,13 @@ void SendAdminMenuResponse(int socketfd) {
 
 	switch (val)
 	{
-	case 1: AddNewEmployee(socketfd);
+	case 1: 
+		AddNewEmployee(socketfd);
+		SendAdminMenuResponse(socketfd);
 		break;
 	
 	default:
+		SendWelcomeMenuResponse(socketfd);
 		break;
 	}
 }
@@ -179,11 +187,89 @@ void AddNewEmployee(int socketfd) {
 
 	send(socketfd, &employee, sizeof(EmployeeInformation), 0);
 
-	read(socketfd, employee.userid, 14);
+	int bytesread = read(socketfd, employee.userid, 14);
+	employee.userid[bytesread] = '\0';
 
 	printf("\nEmployee Id of the new Employee is : %s\n", employee.userid);
 }
 
-// void SendManagerMenuResponse(int socketfd) {
+void SendManagerMenuResponse(int socketfd) {
+	printf("%s", managerMenu);
+
+	int val, response;
+
+	scanf("%d", &val);
+	getchar();
+
+	response = htonl(val);
+
+	send(socketfd, &response, sizeof(response), 0);
+
+	switch (val)
+	{
+		case 1: 
+			break;
+		
+		default: 
+			SendWelcomeMenuResponse(socketfd);
+			break;
+	}
+}
+
+void SendEmployeeMenuResponse(int socketfd) {
+	printf("%s", employeeMenu);
+
+	int val, response;
+
+	scanf("%d", &val);
+	getchar();
+
+	response = htonl(val);
+
+	send(socketfd, &response, sizeof(response), 0);
+
+	switch (val)
+	{
+		case 1:
+			AddNewCustomer(socketfd);
+			SendEmployeeMenuResponse(socketfd);
+			break;
+		
+		default:
+			SendWelcomeMenuResponse(socketfd);
+			break;
+	}
+}
+
+void AddNewCustomer(int socketfd) {
+	CustomerInformation customer;
+
+	customer.status = ACTIVE;
 	
-// }
+	printf("\nEnter Full Name : ");
+	strcpy(customer.personalinformation.fullname, "Full Name\n");
+	printf("%s", customer.personalinformation.fullname);
+	//fgets(employee.personalinformation.fullname, sizeof(employee.personalinformation.fullname), stdin);
+
+	printf("\nEnter contact : ");
+	strcpy(customer.personalinformation.contact, "9999999999\n");
+	printf("%s", customer.personalinformation.contact);
+	//fgets(employee.personalinformation.contact, sizeof(employee.personalinformation.contact), stdin);
+
+	printf("\nEnter Email : ");
+	strcpy(customer.personalinformation.email, "some-email@gmail.com\n");
+	printf("%s", customer.personalinformation.email);
+	//fgets(employee.personalinformation.email, sizeof(employee.personalinformation.email), stdin);
+
+	printf("\nEnter Password : ");
+	strcpy(customer.password, "password");
+	printf("%s", customer.password);
+	//fgets(employee.password, sizeof(employee.password), stdin);
+
+	send(socketfd, &customer, sizeof(CustomerInformation), 0);
+
+	int bytesRead = read(socketfd, customer.userid, 13);
+	customer.userid[bytesRead] = '\0';
+
+	printf("\nEmployee Id of the new Employee is : %s\n", customer.userid);
+}

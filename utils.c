@@ -13,7 +13,7 @@ const char *clientMenu = "\nEnter log-in type: \n 1. Customer \n 2. Bank Employe
 const char *adminMenu = "\nPlease select a option - \n 1. Add New Bank Employee.\n 2. Modify Customer Details.\n 3. Modify Employee Details.\n 4. Change Password.\n 5. Exit.\n Enter your choice : ";
 const char *managerMenu = "\nPlease select a option - \n 1. Activate Bank Account.\n 2. Deactivate Bank Account.\n 3. Assign Loan Application to a Employee.\n 4. Review Customer Feedback.\n 5. Change Password.\n 6. Logout.\n 7. Exit.\n Enter your choice : ";
 const char *employeeMenu = "\nPlease select a option - \n 1. Add a new Customer.\n 2. Process Loan Application.\n 3. Approve/Reject Particular Loan Applications.\n 4. View Customer Transactions.\n 5. Change Password.\n 6. Logout.\n 7. Exit.\n Enter your choice : ";
-const char *customerMenu = "\nPlease select a option - \n 1. View Account Balance.\n 2. Deposit Money.\n 3. Withdraw Money.\n 4. Transfer Funds.\n 5. Change Password.\n 6. Add Feedback\n 7. View Transactions History.\n 8. Logout.\n 9.Exit.\n Enter your choice : ";
+const char *customerMenu = "\nPlease select a option - \n 1. View Account Balance.\n 2. Deposit Money.\n 3. Withdraw Money.\n 4. Transfer Funds.\n 5. Change Password.\n 6. Add Feedback\n 7. View Transactions History.\n 8. Logout.\n 9. Exit.\n Enter your choice : ";
 
 char adminCredentialsFilePath[212];
 char customerIndexesFilePath[216];
@@ -76,7 +76,7 @@ void AcquireReadLock(int fd) {
     flock.l_len = 0;
 
     if (fcntl(fd, F_SETLKW, &flock) == -1) {
-        printf("\nError Acquiring WRITE File Lock.\n");
+        printf("\nError Acquiring READ File Lock.\n");
 		printf("Failed to acquire lock: %s\n", strerror(errno));
     }
 }

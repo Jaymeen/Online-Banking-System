@@ -7,18 +7,21 @@
 #include <arpa/inet.h>
 
 #define PORT 65000
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 14
 
 char buffer[BUFFER_SIZE];
 
 void SendWelcomeMenuResponse(int socketfd);
-LoginResult SendCredentialsToServer(int socketfd);
+LoginResult SendCredentialsToServer(int socketfd, Credentials * creds);
 void SendAdminMenuResponse(int socketfd);
 void AddNewEmployee(int socketfd);
 void SendManagerMenuResponse(int socketfd);
 void SendEmployeeMenuResponse(int socketfd);
 void AddNewCustomer(int socketfd);
 void SendCustomerMenuResponse(int socketfd);
+void GetAccountBalance(int socketfd);
+void DepositMoney(int socketfd);
+void WithdrawMoney(int socketfd);
 
 int main() {
     int sock = 0;
@@ -60,7 +63,8 @@ void SendWelcomeMenuResponse(int socketfd) {
 	if(val == 5)
 		return;
 
-	LoginResult result = SendCredentialsToServer(socketfd);
+	Credentials creds;
+	LoginResult result = SendCredentialsToServer(socketfd, &creds);
 
 	if(result == LOGIN_ID_NOT_FOUND) {
 		printf("\nNo Such Login ID found. Please try again.\n");
@@ -78,6 +82,7 @@ void SendWelcomeMenuResponse(int socketfd) {
 		return;
 	}
 	else {
+		strcpy(buffer, creds.loginId);
 		printf("\nLogged in Successfully.\n");
 	}
 
@@ -105,18 +110,16 @@ void SendWelcomeMenuResponse(int socketfd) {
 	}
 }
 
-LoginResult SendCredentialsToServer(int socketfd) {
-	Credentials creds;
-
+LoginResult SendCredentialsToServer(int socketfd, Credentials * creds) {
 	printf("\nEnter login Id : ");
-	fgets(creds.loginId, sizeof(creds.loginId), stdin);
-	creds.loginId[strcspn(creds.loginId, "\n")] = '\0';
+	fgets(creds->loginId, sizeof(creds->loginId), stdin);
+	creds->loginId[strcspn(creds->loginId, "\n")] = '\0';
 
 	printf("\nEnter Password : ");
-	fgets(creds.password, sizeof(creds.password), stdin);
-	creds.password[strcspn(creds.password, "\n")] = '\0';
+	fgets(creds->password, sizeof(creds->password), stdin);
+	creds->password[strcspn(creds->password, "\n")] = '\0';
 
-	send(socketfd, &creds, sizeof(Credentials), 0);
+	send(socketfd, creds, sizeof(Credentials), 0);
 
 	LoginResult result;
 
@@ -247,6 +250,7 @@ void AddNewCustomer(int socketfd) {
 	CustomerInformation customer;
 
 	customer.status = ACTIVE;
+	customer.balance = 0.0;
 	
 	printf("\nEnter Full Name : ");
 	strcpy(customer.personalinformation.fullname, "Full Name\n");
@@ -291,13 +295,72 @@ void SendCustomerMenuResponse(int socketfd) {
 	switch (val)
 	{
 		case 1:
+			GetAccountBalance(socketfd);
+			SendCustomerMenuResponse(socketfd);
 			break;
 		
 		case 2:
+			DepositMoney(socketfd);
+			SendCustomerMenuResponse(socketfd);
+			break;
+		
+		case 3:
+			WithdrawMoney(socketfd);
+			SendCustomerMenuResponse(socketfd);
 			break;
 		
 		default:
 			SendWelcomeMenuResponse(socketfd);
 			break;
 	}
+}
+
+void GetAccountBalance(int socketfd) {
+	send(socketfd, buffer, strlen(buffer), 0);
+
+	double balance;
+
+	read(socketfd, &balance, sizeof(balance));
+
+	printf("\nYour account Balance is : %lf", balance);
+}
+
+void DepositMoney(int socketfd) {
+	double depositAmount;
+	double balance;
+
+	printf("\nEnter the amount to be deposited : ");
+	scanf("%lf", &depositAmount);
+	getchar();
+
+	send(socketfd, buffer, BUFFER_SIZE, 0);
+	send(socketfd, &depositAmount, sizeof(depositAmount), 0);
+
+	read(socketfd, &balance, sizeof(balance));
+
+	printf("\nYour Account's Current Balance is : %lf\n", balance);
+}
+
+void WithdrawMoney(int socketfd) {
+	double withdrawAmount;
+	double balance;
+
+	printf("\nEnter the amount to be withdrawn : ");
+	scanf("%lf", &withdrawAmount);
+	getchar();
+
+	send(socketfd, buffer, BUFFER_SIZE, 0);
+
+	send(socketfd, &withdrawAmount, sizeof(withdrawAmount), 0);
+
+	read(socketfd, &balance, sizeof(double));
+
+	if(balance < withdrawAmount) {
+		printf("\nIn-Sufficient Balance. Transaction Incomplete\n");
+		return;
+	}
+
+	read(socketfd, &balance, sizeof(double));
+
+	printf("\nYour Account's Current Balance is : %lf\n", balance);
 }

@@ -10,9 +10,6 @@
 #include <sys/stat.h>
 
 #define PORT 65000
-#define BUFFER_SIZE 1024
-
-char buffer[BUFFER_SIZE];
 
 void GetWelcomeMenuResponse(int socketfd);
 void GetCredentialsFromClient(int socketfd, Credentials *creds);
@@ -26,6 +23,9 @@ void GetEmployeeMenuResponse(int socketfd);
 void AddNewCustomer(int socketfd);
 LoginResult VerifyCustomerCredentials(int socketfd, Credentials * creds);
 void GetCustomerMenuResponse(int socketfd);
+void SendAccountBalance(int socketfd);
+void Deposit(int socketfd);
+void Withdraw(int socketfd);
 
 int main() {
 	init();
@@ -461,13 +461,133 @@ void GetCustomerMenuResponse(int socketfd) {
 
 	switch(responseValue) {
 		case 1: 
+			SendAccountBalance(socketfd);
+			GetCustomerMenuResponse(socketfd);
 			break;
 		
 		case 2:
+			Deposit(socketfd);
+			GetCustomerMenuResponse(socketfd);
+			break;
+		
+		case 3:
+			Withdraw(socketfd);
+			GetCustomerMenuResponse(socketfd);
 			break;
 		
 		default: 
 			GetWelcomeMenuResponse(socketfd);
 			break;
 	}
+}
+
+void SendAccountBalance(int socketfd) {
+	char currCustomerDetailsFilePath[237];
+	char currentCustomerId[14];
+	char currCustomerDirectoryPath[230];
+	CustomerInformation customer;
+
+	int bytesread = read(socketfd, currentCustomerId, 14);
+	currentCustomerId[bytesread] = '\0';
+
+	strcpy(currCustomerDirectoryPath, customersDirectoryPath);
+	strcat(currCustomerDirectoryPath, "/");
+	strcat(currCustomerDirectoryPath, currentCustomerId);
+
+	strcpy(currCustomerDetailsFilePath, currCustomerDirectoryPath);
+	strcat(currCustomerDetailsFilePath, "/details");
+
+	int fd = open(currCustomerDetailsFilePath, O_RDONLY, S_IRUSR | S_IWUSR);
+
+	AcquireReadLock(fd);
+
+	read(fd, &customer, sizeof(CustomerInformation));
+
+	UnLockFile(fd);
+
+	close(fd);
+
+	send(socketfd, &customer.balance, sizeof(customer.balance), 0);
+}
+
+void Deposit(int socketfd) {
+	char currentCustomerId[14];
+	char currCustomerDetailsFilePath[237];
+	CustomerInformation customer;
+	char currCustomerDirectoryPath[230];
+	double depositAmount;
+
+	read(socketfd, currentCustomerId, 14);
+
+	strcpy(currCustomerDirectoryPath, customersDirectoryPath);
+	strcat(currCustomerDirectoryPath, "/");
+	strcat(currCustomerDirectoryPath, currentCustomerId);
+
+	strcpy(currCustomerDetailsFilePath, currCustomerDirectoryPath);
+	strcat(currCustomerDetailsFilePath, "/details");
+
+	read(socketfd, &depositAmount, sizeof(depositAmount));
+
+	int fd = open(currCustomerDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd);
+
+	read(fd, &customer, sizeof(CustomerInformation));
+
+	customer.balance += depositAmount;
+
+	lseek(fd, 0, SEEK_SET);
+
+	write(fd, &customer, sizeof(CustomerInformation));
+
+	UnLockFile(fd);
+
+	close(fd);
+
+	send(socketfd, &customer.balance, sizeof(double), 0);	
+}
+
+void Withdraw(int socketfd) {
+	char currentCustomerId[14];
+	char currCustomerDetailsFilePath[237];
+	CustomerInformation customer;
+	char currCustomerDirectoryPath[230];
+	double withdrawAmount;
+
+	read(socketfd, currentCustomerId, 14);
+
+	strcpy(currCustomerDirectoryPath, customersDirectoryPath);
+	strcat(currCustomerDirectoryPath, "/");
+	strcat(currCustomerDirectoryPath, currentCustomerId);
+
+	strcpy(currCustomerDetailsFilePath, currCustomerDirectoryPath);
+	strcat(currCustomerDetailsFilePath, "/details");
+
+	read(socketfd, &withdrawAmount, sizeof(withdrawAmount));
+
+	int fd = open(currCustomerDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd);
+
+	read(fd, &customer, sizeof(CustomerInformation));
+
+	send(socketfd, &customer.balance, sizeof(double), 0);
+
+	if(customer.balance < withdrawAmount) {
+		UnLockFile(fd);
+		close(fd);
+		return;
+	}
+
+	customer.balance -= withdrawAmount;
+
+	lseek(fd, 0, SEEK_SET);
+
+	write(fd, &customer, sizeof(CustomerInformation));
+
+	UnLockFile(fd);
+
+	close(fd);
+
+	send(socketfd, &customer.balance, sizeof(customer.balance), 0);
 }

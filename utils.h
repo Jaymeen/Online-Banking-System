@@ -36,7 +36,7 @@ typedef enum {
 } LoginResult;
 
 typedef struct {
-	char loginId[25];
+	char loginId[14];
     char password[25];
 } Credentials;
 
@@ -56,6 +56,7 @@ typedef struct {
 
 typedef struct {
 	PersonalInformation personalinformation;
+	double balance;
 	char userid[14];
 	char password[20];
 	Status status;

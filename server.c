@@ -496,16 +496,13 @@ void GetCustomerMenuResponse(int socketfd) {
 void SendAccountBalance(int socketfd) {
 	char currCustomerDetailsFilePath[237];
 	char currentCustomerId[14];
-	char currCustomerDirectoryPath[230];
 	CustomerInformation customer;
 
 	read(socketfd, currentCustomerId, 14);
 
-	strcpy(currCustomerDirectoryPath, customersDirectoryPath);
-	strcat(currCustomerDirectoryPath, "/");
-	strcat(currCustomerDirectoryPath, currentCustomerId);
-
-	strcpy(currCustomerDetailsFilePath, currCustomerDirectoryPath);
+	strcpy(currCustomerDetailsFilePath, customersDirectoryPath);
+	strcat(currCustomerDetailsFilePath, "/");
+	strcat(currCustomerDetailsFilePath, currentCustomerId);
 	strcat(currCustomerDetailsFilePath, "/details");
 
 	int fd = open(currCustomerDetailsFilePath, O_RDONLY, S_IRUSR | S_IWUSR);
@@ -646,16 +643,13 @@ void Withdraw(int socketfd) {
 
 void SendTransactionsToCustomer(int socketfd) {
 	char currentCustomerId[14];
-	char currCustomerDirectoryPath[230];
 	char currCustomerTransationsFilePath[243];
 
 	read(socketfd, currentCustomerId, 14);
 
-	strcpy(currCustomerDirectoryPath, customersDirectoryPath);
-	strcat(currCustomerDirectoryPath, "/");
-	strcat(currCustomerDirectoryPath, currentCustomerId);
-
-	strcpy(currCustomerTransationsFilePath, currCustomerDirectoryPath);
+	strcpy(currCustomerTransationsFilePath, customersDirectoryPath);
+	strcat(currCustomerTransationsFilePath, "/");
+	strcat(currCustomerTransationsFilePath, currentCustomerId);
 	strcat(currCustomerTransationsFilePath, "/transactions");
 
 	int fd = open(currCustomerTransationsFilePath, O_RDONLY, S_IRUSR | S_IWUSR);

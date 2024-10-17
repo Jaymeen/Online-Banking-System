@@ -35,6 +35,11 @@ typedef enum {
 	ROLE_MISMATCH
 } LoginResult;
 
+typedef enum {
+	CREDIT,
+	DEBIT
+} TransactionType;
+
 typedef struct {
 	char loginId[14];
     char password[25];
@@ -61,6 +66,13 @@ typedef struct {
 	char password[20];
 	Status status;
 } CustomerInformation;
+
+typedef struct {
+	double transferamount;
+	char secondparty[14];
+	char time[30];
+	TransactionType type;
+} Transaction;
 
 void init();
 void AcquireWriteLock(int fd);

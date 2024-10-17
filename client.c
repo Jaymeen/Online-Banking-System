@@ -22,6 +22,7 @@ void SendCustomerMenuResponse(int socketfd);
 void GetAccountBalance(int socketfd);
 void DepositMoney(int socketfd);
 void WithdrawMoney(int socketfd);
+void ViewTransactionHistory(int socketfd);
 
 int main() {
     int sock = 0;
@@ -309,6 +310,11 @@ void SendCustomerMenuResponse(int socketfd) {
 			SendCustomerMenuResponse(socketfd);
 			break;
 		
+		case 7:
+			ViewTransactionHistory(socketfd);
+			SendCustomerMenuResponse(socketfd);
+			break;
+		
 		default:
 			SendWelcomeMenuResponse(socketfd);
 			break;
@@ -316,13 +322,13 @@ void SendCustomerMenuResponse(int socketfd) {
 }
 
 void GetAccountBalance(int socketfd) {
-	send(socketfd, buffer, strlen(buffer), 0);
+	send(socketfd, buffer, BUFFER_SIZE, 0);
 
 	double balance;
 
-	read(socketfd, &balance, sizeof(balance));
+	read(socketfd, &balance, sizeof(double));
 
-	printf("\nYour account Balance is : %lf", balance);
+	printf("\nYour account Balance is : %lf\n", balance);
 }
 
 void DepositMoney(int socketfd) {
@@ -363,4 +369,32 @@ void WithdrawMoney(int socketfd) {
 	read(socketfd, &balance, sizeof(double));
 
 	printf("\nYour Account's Current Balance is : %lf\n", balance);
+}
+
+void ViewTransactionHistory(int socketfd) {
+	int totalTransactions;
+	
+	send(socketfd, buffer, BUFFER_SIZE, 0);
+
+	read(socketfd, &totalTransactions, sizeof(totalTransactions));
+
+	printf("\n######################################\n");
+	printf("\nTotal Transactions : %d\n", totalTransactions);
+
+	for(int i = 0; i < totalTransactions; i++) {
+		Transaction transaction;
+		read(socketfd, &transaction, sizeof(Transaction));
+		printf("\n*********************************");
+		printf("\nTransaction Amount : %lf", transaction.transferamount);
+		printf("\nTo/From : %s", transaction.secondparty);
+		printf("\nTransaction Time : %s", transaction.time);
+		if(transaction.type == CREDIT)
+			printf("Transaction Type : CREDIT\n");
+		else
+			printf("Transaction Type : DEBIT\n");
+		
+		printf("*********************************");
+	}
+
+	printf("\n######################################");
 }

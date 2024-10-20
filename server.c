@@ -18,7 +18,7 @@ LoginResult VerifyAdminCredentials(int socketfd, Credentials *creds);
 void GetAdminMenuResponse(int socketfd);
 void AddNewEmployee(int socketfd);
 int GetNewIndex(char * filePath);
-LoginResult VerifyEmployeeCredentialsAndRole(int socketfd, Credentials * creds, EmployeeType employeeType);
+LoginResult VerifyEmployeeCredentialsAndRole(int socketfd, Credentials * creds, ClientType employeeType);
 void GetManagerMenuResponse(int socketfd);
 void GetEmployeeMenuResponse(int socketfd);
 void AddNewCustomer(int socketfd);
@@ -30,6 +30,7 @@ void Withdraw(int socketfd);
 void SendTransactionsToCustomer(int socketfd);
 void TransferFunds(int socketfd);
 void LogTransaction(char * filePath, char * customerId, double amount, TransactionType type);
+void ChangePasswordForClient(int socketfd);
 
 int main() {
 	init();
@@ -191,6 +192,11 @@ void GetAdminMenuResponse(int socketfd) {
 		case 2:
 			break;
 		
+		case 4:
+			ChangePasswordForClient(socketfd);
+			GetAdminMenuResponse(socketfd);
+			break;
+		
 		default:
 			GetWelcomeMenuResponse(socketfd);
 			break;
@@ -269,7 +275,7 @@ int GetNewIndex(char * filePath) {
 	return result;
 }
 
-LoginResult VerifyEmployeeCredentialsAndRole(int socketfd, Credentials * creds, EmployeeType employeeType) {
+LoginResult VerifyEmployeeCredentialsAndRole(int socketfd, Credentials * creds, ClientType employeeType) {
 	char currEmployeeDirectoryPath[230];
 
 	strcpy(currEmployeeDirectoryPath, employeesDirectoryPath);
@@ -333,6 +339,10 @@ void GetManagerMenuResponse(int socketfd) {
 		case 2:
 			break;
 		
+		case 5:
+			ChangePasswordForClient(socketfd);
+			break;
+		
 		default: 
 			GetWelcomeMenuResponse(socketfd);
 			break;
@@ -354,6 +364,11 @@ void GetEmployeeMenuResponse(int socketfd) {
 			break;
 		
 		case 2:
+			break;
+		
+		case 5:
+			ChangePasswordForClient(socketfd);
+			GetEmployeeMenuResponse(socketfd);
 			break;
 		
 		default: 
@@ -486,6 +501,11 @@ void GetCustomerMenuResponse(int socketfd) {
 		
 		case 4:
 			TransferFunds(socketfd);
+			GetCustomerMenuResponse(socketfd);
+			break;
+		
+		case 5:
+			ChangePasswordForClient(socketfd);
 			GetCustomerMenuResponse(socketfd);
 			break;
 
@@ -768,3 +788,93 @@ void LogTransaction(char * filePath, char * customerId, double amount, Transacti
 	UnLockFile(fd);
 	close(fd);
 }
+
+void ChangePasswordForClient(int socketfd) {
+	ClientType clientType;
+	char detailsFilePath[237];
+	char clientId[14];
+	char newPassword[14];
+
+	read(socketfd, &clientType, sizeof(ClientType));
+
+	read(socketfd, clientId, 14);
+
+	read(socketfd, newPassword, 14);
+
+	if(clientType == ADMIN) {
+		strcpy(detailsFilePath, adminCredentialsFilePath);
+
+		Credentials creds;
+
+		int fd = open(detailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+		AcquireWriteLock(fd);
+
+		read(fd, &creds, sizeof(Credentials));
+
+		lseek(fd, 0, SEEK_SET);
+
+		strcpy(creds.password, newPassword);
+
+		write(fd, &creds, sizeof(Credentials));
+
+		UnLockFile(fd);
+
+		close(fd);
+
+		return;
+	}
+
+	if(clientType == CUSTOMER) {
+		strcpy(detailsFilePath, customersDirectoryPath);
+		strcat(detailsFilePath, "/");
+		strcat(detailsFilePath, clientId);
+		strcat(detailsFilePath, "/");
+		strcat(detailsFilePath, "details");
+
+		int fd = open(detailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+		AcquireWriteLock(fd);
+
+		CustomerInformation customer;
+
+		read(fd, &customer, sizeof(CustomerInformation));
+
+		lseek(fd, 0, SEEK_SET);
+
+		strcpy(customer.password, newPassword);
+
+		write(fd, &customer, sizeof(customer));
+
+		UnLockFile(fd);
+
+		close(fd);
+	}
+	else if(clientType == MANAGER || clientType == EMPLOYEE) {
+		strcpy(detailsFilePath, employeesDirectoryPath);
+
+		strcat(detailsFilePath, "/");
+		strcat(detailsFilePath, clientId);
+		strcat(detailsFilePath, "/");
+		strcat(detailsFilePath, "details");
+
+		int fd = open(detailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+		AcquireWriteLock(fd);
+
+		EmployeeInformation employee;
+
+		read(fd, &employee, sizeof(EmployeeInformation));
+
+		lseek(fd, 0, SEEK_SET);
+
+		strcpy(employee.password, newPassword);
+
+		write(fd, &employee, sizeof(employee));
+
+		UnLockFile(fd);
+
+		close(fd);		
+	}
+}
+

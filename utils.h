@@ -24,9 +24,11 @@ typedef enum {
 } Status;
 
 typedef enum {
+	CUSTOMER,
 	MANAGER,
-	EMPLOYEE
-} EmployeeType;
+	EMPLOYEE,
+	ADMIN
+} ClientType;
 
 typedef enum {
 	LOGIN_SUCCESSFUL,
@@ -47,7 +49,7 @@ typedef enum {
 
 typedef struct {
 	char loginId[14];
-    char password[25];
+    char password[14];
 } Credentials;
 
 typedef struct {
@@ -60,7 +62,7 @@ typedef struct {
 	PersonalInformation personalinformation;
 	char userid[14];
 	char password[20];
-	EmployeeType employeetype;
+	ClientType employeetype;
 	Status status;
 } EmployeeInformation;
 

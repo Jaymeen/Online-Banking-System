@@ -24,6 +24,7 @@ void DepositMoney(int socketfd);
 void WithdrawMoney(int socketfd);
 void ViewTransactionHistory(int socketfd);
 void TransferFunds(int socketfd);
+void ChangePassword(int socketfd, ClientType clientType);
 
 int main() {
     int sock = 0;
@@ -149,6 +150,11 @@ void SendAdminMenuResponse(int socketfd) {
 		SendAdminMenuResponse(socketfd);
 		break;
 	
+	case 4:
+		ChangePassword(socketfd, MANAGER);
+		SendAdminMenuResponse(socketfd);
+		break;
+
 	default:
 		SendWelcomeMenuResponse(socketfd);
 		break;
@@ -216,6 +222,11 @@ void SendManagerMenuResponse(int socketfd) {
 	{
 		case 1: 
 			break;
+
+		case 5:
+			ChangePassword(socketfd, MANAGER);
+			SendManagerMenuResponse(socketfd);
+			break;
 		
 		default: 
 			SendWelcomeMenuResponse(socketfd);
@@ -239,6 +250,11 @@ void SendEmployeeMenuResponse(int socketfd) {
 	{
 		case 1:
 			AddNewCustomer(socketfd);
+			SendEmployeeMenuResponse(socketfd);
+			break;
+		
+		case 5:
+			ChangePassword(socketfd, EMPLOYEE);
 			SendEmployeeMenuResponse(socketfd);
 			break;
 		
@@ -313,6 +329,11 @@ void SendCustomerMenuResponse(int socketfd) {
 		
 		case 4:
 			TransferFunds(socketfd);
+			SendCustomerMenuResponse(socketfd);
+			break;
+
+		case 5:
+			ChangePassword(socketfd, CUSTOMER);
 			SendCustomerMenuResponse(socketfd);
 			break;
 		
@@ -440,4 +461,20 @@ void TransferFunds(int socketfd) {
 	}
 
 	printf("\nFunds transferred successfully.\n");
+}
+
+void ChangePassword(int socketfd, ClientType clientType) {
+	char newPassword[14];
+
+	send(socketfd, &clientType, sizeof(ClientType), 0);
+
+	send(socketfd, buffer, 14, 0);
+
+	printf("\nEnter new Password : ");
+	fgets(newPassword, 14, stdin);
+	newPassword[strcspn(newPassword, "\n")] = '\0';
+
+	send(socketfd, newPassword, 14, 0);
+
+	printf("\nPassword updated Successfully.");
 }

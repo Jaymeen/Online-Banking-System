@@ -28,6 +28,7 @@ void SendAccountBalance(int socketfd);
 void Deposit(int socketfd);
 void Withdraw(int socketfd);
 void SendTransactionsToCustomer(int socketfd);
+void TransferFunds(int socketfd);
 
 int main() {
 	init();
@@ -240,7 +241,7 @@ void AddNewEmployee(int socketfd) {
 	close(fd2);
 	close(fd1);
 
-	send(socketfd, employee.userid, strlen(employee.userid), 0);
+	send(socketfd, employee.userid, 14, 0);
 }
 
 int GetNewIndex(char * filePath) {
@@ -481,6 +482,11 @@ void GetCustomerMenuResponse(int socketfd) {
 			Withdraw(socketfd);
 			GetCustomerMenuResponse(socketfd);
 			break;
+		
+		case 4:
+			TransferFunds(socketfd);
+			GetCustomerMenuResponse(socketfd);
+			break;
 
 		case 7:
 			SendTransactionsToCustomer(socketfd);
@@ -541,10 +547,8 @@ void Deposit(int socketfd) {
 	read(socketfd, &depositAmount, sizeof(depositAmount));
 
 	int fd1 = open(currCustomerDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
-	int fd2 = open(currCustomerTransationsFilePath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
 
 	AcquireWriteLock(fd1);
-	AcquireWriteLock(fd2);
 
 	read(fd1, &customer, sizeof(CustomerInformation));
 
@@ -553,6 +557,11 @@ void Deposit(int socketfd) {
 	lseek(fd1, 0, SEEK_SET);
 
 	write(fd1, &customer, sizeof(CustomerInformation));
+	UnLockFile(fd1);
+	close(fd1);
+
+	int fd2 = open(currCustomerTransationsFilePath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
+	AcquireWriteLock(fd2);
 
 	Transaction transaction;
 	long currentTime;
@@ -567,9 +576,7 @@ void Deposit(int socketfd) {
 	write(fd2, &transaction, sizeof(Transaction));
 
 	UnLockFile(fd2);
-	UnLockFile(fd1);
 
-	close(fd1);
 	close(fd2);
 
 	send(socketfd, &customer.balance, sizeof(double), 0);	
@@ -598,20 +605,16 @@ void Withdraw(int socketfd) {
 	read(socketfd, &withdrawAmount, sizeof(withdrawAmount));
 
 	int fd1 = open(currCustomerDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
-	int fd2 = open(currCustomerTransationsFilePath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
 
 	AcquireWriteLock(fd1);
-	AcquireWriteLock(fd2);
 
 	read(fd1, &customer, sizeof(CustomerInformation));
 
 	send(socketfd, &customer.balance, sizeof(double), 0);
 
 	if(customer.balance < withdrawAmount) {
-		UnLockFile(fd2);
 		UnLockFile(fd1);
 		close(fd1);
-		close(fd2);
 		return;
 	}
 
@@ -620,6 +623,13 @@ void Withdraw(int socketfd) {
 	lseek(fd1, 0, SEEK_SET);
 
 	write(fd1, &customer, sizeof(CustomerInformation));
+
+	UnLockFile(fd1);
+	close(fd1);
+
+	int fd2 = open(currCustomerTransationsFilePath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd2);
 
 	Transaction transaction;
 	long currentTime;
@@ -634,9 +644,7 @@ void Withdraw(int socketfd) {
 	write(fd2, &transaction, sizeof(Transaction));
 
 	UnLockFile(fd2);
-	UnLockFile(fd1);
-
-	close(fd1);
+	close(fd2);
 
 	send(socketfd, &customer.balance, sizeof(customer.balance), 0);
 }
@@ -673,3 +681,100 @@ void SendTransactionsToCustomer(int socketfd) {
 	close(fd);
 }
 
+void TransferFunds(int socketfd) {
+	char currentCustomerId[14];
+	char currCustomerDirectoryPath[230];
+	char currCustomerDetailsFilePath[237];
+	char currCustomerTransationsFilePath[243];
+	char payeeCustomerId[14];
+	char payeeCustomerDirectoryPath[230];
+	char payeeCustomerDetailsFilePath[243];
+	char payeeCustomerTransactionsFilePath[243];
+	CustomerInformation customer;
+	CustomerInformation payee;
+	double transferAmount;
+	EnityExistenceResult result;
+
+	read(socketfd, currentCustomerId, 14);
+
+	read(socketfd, payeeCustomerId, 14);
+
+	strcpy(payeeCustomerDirectoryPath, customersDirectoryPath);
+	strcat(payeeCustomerDirectoryPath, "/");
+	strcat(payeeCustomerDirectoryPath, payeeCustomerId);
+
+	result = DOES_NOT_EXIST;
+
+	if(access(payeeCustomerDirectoryPath, F_OK) == 0) {
+		result = EXISTS;
+	}
+
+	send(socketfd, &result, sizeof(result), 0);
+
+	if(result != EXISTS) {
+		return;
+	}
+
+	strcpy(currCustomerDirectoryPath, customersDirectoryPath);
+	strcat(currCustomerDirectoryPath, "/");
+	strcat(currCustomerDirectoryPath, currentCustomerId);
+
+	strcpy(currCustomerDetailsFilePath, currCustomerDirectoryPath);
+	strcat(currCustomerDetailsFilePath, "/details");
+
+	strcpy(currCustomerTransationsFilePath, currCustomerDirectoryPath);
+	strcat(currCustomerTransationsFilePath, "/transactions");
+
+	read(socketfd, &transferAmount, sizeof(transferAmount));
+
+	int fd1 = open(currCustomerDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd1);
+
+	read(fd1, &customer, sizeof(CustomerInformation));
+
+	send(socketfd, &customer.balance, sizeof(double), 0);
+
+	if(customer.balance < transferAmount) {
+		UnLockFile(fd1);
+		close(fd1);
+		return;
+	}
+
+	customer.balance -= transferAmount;
+
+	lseek(fd1, 0, SEEK_SET);
+
+	write(fd1, &customer, sizeof(CustomerInformation));
+
+	UnLockFile(fd1);
+	close(fd1);
+
+	strcpy(payeeCustomerDirectoryPath, customersDirectoryPath);
+	strcat(payeeCustomerDirectoryPath, "/");
+	strcat(payeeCustomerDirectoryPath, payeeCustomerId);
+
+	strcpy(payeeCustomerDetailsFilePath, payeeCustomerDirectoryPath);
+	strcat(payeeCustomerDetailsFilePath, "/details");
+
+	strcpy(payeeCustomerTransactionsFilePath, payeeCustomerDirectoryPath);
+	strcat(payeeCustomerTransactionsFilePath, "/transactions");
+
+	int fd2 = open(payeeCustomerDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd2);
+
+	read(fd2, &payee, sizeof(CustomerInformation));
+
+	payee.balance += transferAmount;
+
+	lseek(fd2, 0, SEEK_SET);
+
+	write(fd2, &payee, sizeof(CustomerInformation));
+
+	UnLockFile(fd2);
+	
+	close(fd2);
+
+
+}

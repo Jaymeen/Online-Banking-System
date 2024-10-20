@@ -23,6 +23,7 @@ void GetAccountBalance(int socketfd);
 void DepositMoney(int socketfd);
 void WithdrawMoney(int socketfd);
 void ViewTransactionHistory(int socketfd);
+void TransferFunds(int socketfd);
 
 int main() {
     int sock = 0;
@@ -310,6 +311,11 @@ void SendCustomerMenuResponse(int socketfd) {
 			SendCustomerMenuResponse(socketfd);
 			break;
 		
+		case 4:
+			TransferFunds(socketfd);
+			SendCustomerMenuResponse(socketfd);
+			break;
+		
 		case 7:
 			ViewTransactionHistory(socketfd);
 			SendCustomerMenuResponse(socketfd);
@@ -397,4 +403,41 @@ void ViewTransactionHistory(int socketfd) {
 	}
 
 	printf("\n######################################");
+}
+
+void TransferFunds(int socketfd) {
+	double transferAmount;
+	double balance;
+	char payeeId[14];
+	EnityExistenceResult result;
+
+	printf("\nEnter Payee Id : ");
+	fgets(payeeId, BUFFER_SIZE, stdin);
+	payeeId[strcspn(payeeId, "\n")] = '\0';
+
+	printf("\nEnter the amount to be transferred : ");
+	scanf("%lf", &transferAmount);
+	getchar();
+
+	send(socketfd, buffer, BUFFER_SIZE, 0);
+
+	send(socketfd, payeeId, BUFFER_SIZE, 0);
+
+	read(socketfd, &result, sizeof(result));
+
+	if(result != EXISTS) {
+		printf("\nNo such Payee Exists. Try Again\n");
+		return;
+	}
+
+	send(socketfd, &transferAmount, sizeof(transferAmount), 0);
+
+	read(socketfd, &balance, sizeof(double));
+
+	if(balance < transferAmount) {
+		printf("\nIn-Sufficient Balance. Transaction Incomplete\n");
+		return;
+	}
+
+	printf("\nFunds transferred successfully.\n");
 }

@@ -36,6 +36,11 @@ typedef enum {
 } LoginResult;
 
 typedef enum {
+	EXISTS,
+	DOES_NOT_EXIST
+} EnityExistenceResult;
+
+typedef enum {
 	CREDIT,
 	DEBIT
 } TransactionType;

@@ -29,6 +29,7 @@ void Deposit(int socketfd);
 void Withdraw(int socketfd);
 void SendTransactionsToCustomer(int socketfd);
 void TransferFunds(int socketfd);
+void LogTransaction(char * filePath, char * customerId, double amount, TransactionType type);
 
 int main() {
 	init();
@@ -560,24 +561,7 @@ void Deposit(int socketfd) {
 	UnLockFile(fd1);
 	close(fd1);
 
-	int fd2 = open(currCustomerTransationsFilePath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
-	AcquireWriteLock(fd2);
-
-	Transaction transaction;
-	long currentTime;
-	time(&currentTime);
-	char * tempString = ctime(&currentTime);
-
-	transaction.transferamount = depositAmount;
-	strcpy(transaction.secondparty, currentCustomerId);
-	strcpy(transaction.time, tempString);
-	transaction.type = CREDIT;
-
-	write(fd2, &transaction, sizeof(Transaction));
-
-	UnLockFile(fd2);
-
-	close(fd2);
+	LogTransaction(currCustomerTransationsFilePath, currentCustomerId, depositAmount, CREDIT);
 
 	send(socketfd, &customer.balance, sizeof(double), 0);	
 }
@@ -627,24 +611,7 @@ void Withdraw(int socketfd) {
 	UnLockFile(fd1);
 	close(fd1);
 
-	int fd2 = open(currCustomerTransationsFilePath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
-
-	AcquireWriteLock(fd2);
-
-	Transaction transaction;
-	long currentTime;
-	time(&currentTime);
-	char * tempString = ctime(&currentTime);
-
-	transaction.transferamount = withdrawAmount;
-	strcpy(transaction.secondparty, currentCustomerId);
-	strcpy(transaction.time, tempString);
-	transaction.type = DEBIT;
-
-	write(fd2, &transaction, sizeof(Transaction));
-
-	UnLockFile(fd2);
-	close(fd2);
+	LogTransaction(currCustomerTransationsFilePath, currentCustomerId, withdrawAmount, DEBIT);
 
 	send(socketfd, &customer.balance, sizeof(customer.balance), 0);
 }
@@ -776,5 +743,28 @@ void TransferFunds(int socketfd) {
 	
 	close(fd2);
 
+	LogTransaction(currCustomerTransationsFilePath, payeeCustomerId, transferAmount, DEBIT);
+	LogTransaction(payeeCustomerTransactionsFilePath, currentCustomerId, transferAmount, CREDIT);
+}
 
+void LogTransaction(char * filePath, char * customerId, double amount, TransactionType type) {
+	Transaction transaction;
+	long currentTime;
+	
+	time(&currentTime);
+	char * tempString = ctime(&currentTime);
+
+	transaction.transferamount = amount;
+	strcpy(transaction.secondparty, customerId);
+	strcpy(transaction.time, tempString);
+	transaction.type = type;
+	
+	int fd = open(filePath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd);
+
+	write(fd, &transaction, sizeof(Transaction));
+
+	UnLockFile(fd);
+	close(fd);
 }

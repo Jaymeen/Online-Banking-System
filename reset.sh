@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DIRECTORY_PATH=/home/jarvis/Desktop/Banking-System/data
+DIRECTORY_PATH="$(dirname "$(realpath "$0")")/data"
 
 # Check if the provided path is a directory
 if [ ! -d "$DIRECTORY_PATH" ]; then

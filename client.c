@@ -151,7 +151,7 @@ void SendAdminMenuResponse(int socketfd) {
 		break;
 	
 	case 4:
-		ChangePassword(socketfd, MANAGER);
+		ChangePassword(socketfd, ADMIN);
 		SendAdminMenuResponse(socketfd);
 		break;
 

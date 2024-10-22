@@ -110,17 +110,10 @@ void PrintEmployeeInformation(EmployeeInformation * employee) {
 	printf("\nEmployee Status : %d\n", employee->status);
 }
 
-void ResetIndexValues() {
-	int value;
-
-	value = 0;
-
-	int fd1 = open("/home/jarvis/Desktop/Banking-System/data/customerindexes", O_TRUNC | O_WRONLY | O_CREAT);
-	int fd2 = open("/home/jarvis/Desktop/Banking-System/data/employeeindexes", O_TRUNC | O_WRONLY | O_CREAT);
-
-	write(fd1, &value, sizeof(value));
-	write(fd2, &value, sizeof(value));
-
-	close(fd1);
-	close(fd2);
+void PrintCustomerInformation(CustomerInformation * customer) {
+	printf("\nCustomer Name : %s", customer->personalinformation.fullname);
+	printf("\nCustomer Contact : %s", customer->personalinformation.contact);
+	printf("\nCustomer Email : %s", customer->personalinformation.email);
+	printf("\nCustomer Password : %s", customer->password);
+	printf("\nCustomer Account Balance : %lf\n", customer->balance);
 }

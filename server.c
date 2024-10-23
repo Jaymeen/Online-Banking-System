@@ -1289,7 +1289,7 @@ void ProcessAssignedLoans(int socketfd) {
 
 			close(fd2);
 
-			LogTransaction(customerTransactionsFilePath, loan[i].customerId, customer.balance, LOAN);
+			LogTransaction(customerTransactionsFilePath, loan[i].customerId, loan[i].amount, LOAN);
 		}
 	}
 }

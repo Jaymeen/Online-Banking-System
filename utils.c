@@ -19,6 +19,7 @@ char adminCredentialsFilePath[212];
 char customerIndexesFilePath[216];
 char employeeIndexesFilePath[216];
 char allLoansPath[208];
+char feedbacksFilePath[210];
 
 char dataDirectoryPath[200];
 char employeesDirectoryPath[210]; 
@@ -51,6 +52,9 @@ void init() {
 
 	strcpy(allLoansPath, dataDirectoryPath);
 	strcat(allLoansPath, "/allloans");
+
+	strcpy(feedbacksFilePath, dataDirectoryPath);
+	strcat(feedbacksFilePath, "/feedbacks");
 }
 
 void AcquireWriteLock(int fd) {

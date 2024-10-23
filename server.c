@@ -33,6 +33,9 @@ void LogTransaction(char * filePath, char * customerId, double amount, Transacti
 void ChangePasswordForClient(int socketfd);
 void ChangeCustomerDetails(int socketfd);
 void ChangeEmployeeDetails(int socketfd);
+void ViewCustomerTransactions(int socketfd);
+void AddFeedback(int socketfd);
+void ViewFeedbacks(int socketfd);
 
 int main() {
 	init();
@@ -348,8 +351,14 @@ void GetManagerMenuResponse(int socketfd) {
 		case 2:
 			break;
 		
+		case 4:
+			ViewFeedbacks(socketfd);
+			GetManagerMenuResponse(socketfd);
+			break;
+		
 		case 5:
 			ChangePasswordForClient(socketfd);
+			GetManagerMenuResponse(socketfd);
 			break;
 		
 		default: 
@@ -374,6 +383,11 @@ void GetEmployeeMenuResponse(int socketfd) {
 		
 		case 2:
 			ChangeCustomerDetails(socketfd);
+			GetEmployeeMenuResponse(socketfd);
+			break;
+		
+		case 5:
+			ViewCustomerTransactions(socketfd);
 			GetEmployeeMenuResponse(socketfd);
 			break;
 		
@@ -517,6 +531,11 @@ void GetCustomerMenuResponse(int socketfd) {
 		
 		case 5:
 			ChangePasswordForClient(socketfd);
+			GetCustomerMenuResponse(socketfd);
+			break;
+		
+		case 6:
+			AddFeedback(socketfd);
 			GetCustomerMenuResponse(socketfd);
 			break;
 
@@ -905,13 +924,13 @@ void ChangeCustomerDetails(int socketfd) {
 	strcat(customerDetailsFilePath, "/details");
 
 	if(access(customerDetailsFilePath, F_OK) == -1) {
-		send(socketfd, &result, sizeof(int), 0);
+		send(socketfd, &result, sizeof(EntityExistenceResult), 0);
 		return;
 	}
 
 	result = EXISTS;
 
-	send(socketfd, &result, sizeof(int), 0);
+	send(socketfd, &result, sizeof(EntityExistenceResult), 0);
 
 	read(socketfd, &customer, sizeof(CustomerInformation));
 
@@ -951,11 +970,13 @@ void ChangeEmployeeDetails(int socketfd) {
 	strcat(employeeDetailsFilePath, "/details");
 
 	if(access(employeeDetailsFilePath, F_OK) == -1) {
-		send(socketfd, &result, sizeof(int), 0);
+		send(socketfd, &result, sizeof(EntityExistenceResult), 0);
 		return;
 	}
 
 	result = EXISTS;
+
+	send(socketfd, &result, sizeof(EntityExistenceResult), 0);
 
 	read(socketfd, &employee, sizeof(EmployeeInformation));
 
@@ -979,3 +1000,85 @@ void ChangeEmployeeDetails(int socketfd) {
 	close(fd);
 }
 
+void ViewCustomerTransactions(int socketfd) {
+	char currentCustomerId[14];
+	char currCustomerTransationsFilePath[243];
+	EntityExistenceResult result = DOES_NOT_EXIST;
+
+	read(socketfd, currentCustomerId, 14);
+
+	strcpy(currCustomerTransationsFilePath, customersDirectoryPath);
+	strcat(currCustomerTransationsFilePath, "/");
+	strcat(currCustomerTransationsFilePath, currentCustomerId);
+	strcat(currCustomerTransationsFilePath, "/transactions");
+
+	if(access(currCustomerTransationsFilePath, F_OK) == -1) {
+		send(socketfd, &result, sizeof(EntityExistenceResult), 0);
+		return;
+	}
+
+	result = EXISTS;
+
+	send(socketfd, &result, sizeof(EntityExistenceResult), 0);
+
+	int fd = open(currCustomerTransationsFilePath, O_RDONLY, S_IRUSR | S_IWUSR);
+
+	AcquireReadLock(fd);
+
+	int filesize = lseek(fd, 0, SEEK_END);
+	int totalTransactions = filesize/sizeof(Transaction);
+
+	lseek(fd, 0, SEEK_SET);
+
+	send(socketfd, &totalTransactions, sizeof(totalTransactions), 0);
+
+	for(int i = 0; i < totalTransactions; i++) {
+		Transaction transaction;
+		read(fd, &transaction, sizeof(Transaction));
+		send(socketfd, &transaction, sizeof(Transaction), 0);
+	}
+
+	UnLockFile(fd);
+	close(fd);
+}
+
+void AddFeedback(int socketfd) {
+	Feedback feedback;
+
+	read(socketfd, &feedback, sizeof(Feedback));
+
+	int fd = open(feedbacksFilePath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd);
+
+	lseek(fd, 0, SEEK_END);
+
+	write(fd, &feedback, sizeof(Feedback));
+
+	UnLockFile(fd);
+
+	close(fd);
+}
+
+void ViewFeedbacks(int socketfd) {
+	int fd = open(feedbacksFilePath, O_RDONLY, S_IRUSR | S_IWUSR);
+
+	AcquireReadLock(fd);
+
+	int filesize = lseek(fd, 0, SEEK_END);
+	int totalFeedbacks = filesize/sizeof(Feedback);
+
+	lseek(fd, 0, SEEK_SET);
+
+	send(socketfd, &totalFeedbacks, sizeof(totalFeedbacks), 0);
+
+	Feedback feedback;
+
+	for(int i = 0; i < totalFeedbacks; i++) {
+		read(fd, &feedback, sizeof(Feedback));
+		send(socketfd, &feedback, sizeof(Feedback), 0);
+	}
+
+	UnLockFile(fd);
+	close(fd);
+}

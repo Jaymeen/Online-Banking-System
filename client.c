@@ -27,6 +27,9 @@ void TransferFunds(int socketfd);
 void ChangePassword(int socketfd, ClientType clientType);
 void ChangeCustomerDetails(int socketfd);
 void ChangeEmployeeDetails(int socketfd);
+void ViewCustomerTransactions(int socketfd);
+void AddFeedback(int socketfd);
+void ViewFeedbacks(int socketfd);
 
 int main() {
     int sock = 0;
@@ -230,6 +233,11 @@ void SendManagerMenuResponse(int socketfd) {
 		case 1: 
 			break;
 
+		case 4:
+			ViewFeedbacks(socketfd);
+			SendManagerMenuResponse(socketfd);
+			break;
+
 		case 5:
 			ChangePassword(socketfd, MANAGER);
 			SendManagerMenuResponse(socketfd);
@@ -262,6 +270,11 @@ void SendEmployeeMenuResponse(int socketfd) {
 		
 		case 2:
 			ChangeCustomerDetails(socketfd);
+			SendEmployeeMenuResponse(socketfd);
+			break;
+		
+		case 5:
+			ViewCustomerTransactions(socketfd);
 			SendEmployeeMenuResponse(socketfd);
 			break;
 		
@@ -302,7 +315,7 @@ void AddNewCustomer(int socketfd) {
 
 	read(socketfd, customer.userid, 14);
 
-	printf("\nEmployee Id of the new Employee is : %s\n", customer.userid);
+	printf("\nCustomer Id of the new Customer is : %s\n", customer.userid);
 }
 
 void SendCustomerMenuResponse(int socketfd) {
@@ -341,6 +354,11 @@ void SendCustomerMenuResponse(int socketfd) {
 
 		case 5:
 			ChangePassword(socketfd, CUSTOMER);
+			SendCustomerMenuResponse(socketfd);
+			break;
+		
+		case 6:
+			AddFeedback(socketfd);
 			SendCustomerMenuResponse(socketfd);
 			break;
 		
@@ -497,7 +515,7 @@ void ChangeCustomerDetails(int socketfd) {
 
 	send(socketfd, customerId, BUFFER_SIZE, 0);
 
-	read(socketfd, &result, sizeof(result));
+	read(socketfd, &result, sizeof(EntityExistenceResult));
 
 	if(result != EXISTS) {
 		printf("\nNo such Customer Exists. Try Again\n");
@@ -533,7 +551,7 @@ void ChangeEmployeeDetails(int socketfd) {
 
 	send(socketfd, employeeId, BUFFER_SIZE, 0);
 
-	read(socketfd, &result, sizeof(result));
+	read(socketfd, &result, sizeof(EntityExistenceResult));
 
 	if(result != EXISTS) {
 		printf("\nNo such Employee Exists. Try Again\n");
@@ -566,4 +584,79 @@ void ChangeEmployeeDetails(int socketfd) {
 	send(socketfd, &employee, sizeof(EmployeeInformation), 0);
 
 	printf("\nEmployee Details Updated Successfully");
+}
+
+void ViewCustomerTransactions(int socketfd) {
+	char customerId[14];
+	int totalTransactions;
+	EntityExistenceResult result;
+
+	printf("\nEnter Customer Id : ");
+	fgets(customerId, 14, stdin);
+	customerId[strcspn(customerId, "\n")] = '\0';
+	
+	send(socketfd, customerId, BUFFER_SIZE, 0);
+
+	read(socketfd, &result, sizeof(EntityExistenceResult));
+
+	if(result != EXISTS) {
+		printf("\nNo such Customer Exists. Try Again\n");
+		return;
+	}
+
+	read(socketfd, &totalTransactions, sizeof(totalTransactions));
+
+	printf("\n######################################\n");
+	printf("\nTotal Transactions : %d\n", totalTransactions);
+
+	for(int i = 0; i < totalTransactions; i++) {
+		Transaction transaction;
+		read(socketfd, &transaction, sizeof(Transaction));
+		printf("\n*********************************");
+		printf("\nTransaction Amount : %lf", transaction.transferamount);
+		printf("\nTo/From : %s", transaction.secondparty);
+		printf("\nTransaction Time : %s", transaction.time);
+		if(transaction.type == CREDIT)
+			printf("Transaction Type : CREDIT\n");
+		else
+			printf("Transaction Type : DEBIT\n");
+		
+		printf("*********************************");
+	}
+
+	printf("\n######################################\n");
+}
+
+void AddFeedback(int socketfd) {
+	Feedback feedback;
+
+	strcpy(feedback.clientId, buffer);
+
+	printf("\nEnter Feedback : ");
+	fgets(feedback.feedback, 255, stdin);
+	feedback.feedback[strcspn(feedback.feedback, "\n")] = '\0';
+
+	send(socketfd, &feedback, sizeof(Feedback), 0);
+
+	printf("\nFeedback added successfully.\n");
+}
+
+void ViewFeedbacks(int socketfd) {
+	int totalFeedbacks;
+
+	read(socketfd, &totalFeedbacks, sizeof(totalFeedbacks));
+
+	printf("\n######################################\n");
+	printf("\nTotal Feedbacks : %d\n", totalFeedbacks);
+	printf("\n*********************************");
+
+	Feedback feedback;
+
+	for(int i = 0; i < totalFeedbacks; i++) {
+		read(socketfd, &feedback, sizeof(Feedback));
+		printf("\n%s Says : %s", feedback.clientId, feedback.feedback);
+		printf("\n*********************************");
+	}
+
+	printf("\n######################################\n");
 }

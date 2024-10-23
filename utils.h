@@ -13,6 +13,7 @@ extern char adminCredentialsFilePath[212];
 extern char customerIndexesFilePath[216];
 extern char employeeIndexesFilePath[216];
 extern char allLoansPath[208];
+extern char feedbacksFilePath[210];
 
 extern char dataDirectoryPath[200];
 extern char employeesDirectoryPath[210];
@@ -80,6 +81,11 @@ typedef struct {
 	char time[30];
 	TransactionType type;
 } Transaction;
+
+typedef struct {
+	char clientId[14];
+	char feedback[256];
+} Feedback;
 
 void init();
 void AcquireWriteLock(int fd);

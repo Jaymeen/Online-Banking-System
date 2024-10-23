@@ -12,6 +12,7 @@
 void ResetIndexValues(char * directoryPath);
 void CreateAllLoansFile(char * directoryPath);
 void CreateAdminCredentialsFile(char * directoryPath);
+void CreateFeedbacksFile(char * directoryPath);
 
 void main() {
 	char dataDirectoryPath[200];
@@ -21,6 +22,7 @@ void main() {
 	ResetIndexValues(dataDirectoryPath);
 	CreateAllLoansFile(dataDirectoryPath);
 	CreateAdminCredentialsFile(dataDirectoryPath);
+	CreateFeedbacksFile(dataDirectoryPath);
 }
 
 void ResetIndexValues(char * directoryPath) {
@@ -69,5 +71,14 @@ void CreateAdminCredentialsFile(char * directoryPath) {
 
 	write(fd, &creds, sizeof(Credentials));
 
+	close(fd);
+}
+
+void CreateFeedbacksFile(char * directoryPath) {
+	char feedbacksFilePath[212];
+	strcpy(feedbacksFilePath, directoryPath);
+	strcat(feedbacksFilePath, "/feedbacks");
+
+	int fd = creat(feedbacksFilePath, S_IRUSR | S_IWUSR);
 	close(fd);
 }

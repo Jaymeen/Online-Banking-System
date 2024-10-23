@@ -432,7 +432,7 @@ void TransferFunds(int socketfd) {
 	double transferAmount;
 	double balance;
 	char payeeId[14];
-	EnityExistenceResult result;
+	EntityExistenceResult result;
 
 	printf("\nEnter Payee Id : ");
 	fgets(payeeId, BUFFER_SIZE, stdin);
@@ -484,10 +484,20 @@ void ChangePassword(int socketfd, ClientType clientType) {
 void ChangeCustomerDetails(int socketfd) {
 	CustomerInformation customer;
 	char customerId[14];
+	EntityExistenceResult result;
 
 	printf("\nEnter Customer Id : ");
 	fgets(customerId, 14, stdin);
 	customerId[strcspn(customerId, "\n")] = '\0';
+
+	send(socketfd, customerId, BUFFER_SIZE, 0);
+
+	read(socketfd, &result, sizeof(result));
+
+	if(result != EXISTS) {
+		printf("\nNo such Customer Exists. Try Again\n");
+		return;
+	}
 
 	printf("\nEnter Customer Name : ");
 	fgets(customer.personalinformation.fullname, 25, stdin);
@@ -502,8 +512,6 @@ void ChangeCustomerDetails(int socketfd) {
 	fgets(customer.password, 14, stdin);
 	customer.password[strcspn(customer.password, "\n")] = '\0';
 
-	send(socketfd, customerId, BUFFER_SIZE, 0);
-
 	send(socketfd, &customer, sizeof(CustomerInformation), 0);
 
 	printf("\nCustomer Details Updated Successfully");
@@ -512,10 +520,20 @@ void ChangeCustomerDetails(int socketfd) {
 void ChangeEmployeeDetails(int socketfd) {
 	EmployeeInformation employee;
 	char employeeId[14];
+	EntityExistenceResult result;
 
 	printf("\nEnter Employee Id : ");
 	fgets(employeeId, 14, stdin);
 	employeeId[strcspn(employeeId, "\n")] = '\0';
+
+	send(socketfd, employeeId, BUFFER_SIZE, 0);
+
+	read(socketfd, &result, sizeof(result));
+
+	if(result != EXISTS) {
+		printf("\nNo such Employee Exists. Try Again\n");
+		return;
+	}
 
 	printf("\nEnter Employee Name : ");
 	fgets(employee.personalinformation.fullname, 25, stdin);
@@ -539,8 +557,6 @@ void ChangeEmployeeDetails(int socketfd) {
 		employee.employeetype = MANAGER;
 	else
 		employee.employeetype = EMPLOYEE;
-
-	send(socketfd, employeeId, BUFFER_SIZE, 0);
 
 	send(socketfd, &employee, sizeof(EmployeeInformation), 0);
 

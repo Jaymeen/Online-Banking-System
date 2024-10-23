@@ -40,7 +40,7 @@ typedef enum {
 typedef enum {
 	EXISTS,
 	DOES_NOT_EXIST
-} EnityExistenceResult;
+} EntityExistenceResult;
 
 typedef enum {
 	CREDIT,

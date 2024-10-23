@@ -689,7 +689,7 @@ void TransferFunds(int socketfd) {
 	CustomerInformation customer;
 	CustomerInformation payee;
 	double transferAmount;
-	EnityExistenceResult result;
+	EntityExistenceResult result;
 
 	read(socketfd, currentCustomerId, 14);
 
@@ -891,10 +891,9 @@ void ChangeCustomerDetails(int socketfd) {
 	char customerId[14];
 	CustomerInformation customer;
 	CustomerInformation oldInfo;
+	EntityExistenceResult result = DOES_NOT_EXIST;
 
 	read(socketfd, customerId, 14);
-
-	read(socketfd, &customer, sizeof(CustomerInformation));
 
 	char customerDetailsFilePath[237];
 
@@ -902,6 +901,17 @@ void ChangeCustomerDetails(int socketfd) {
 	strcat(customerDetailsFilePath, "/");
 	strcat(customerDetailsFilePath, customerId);
 	strcat(customerDetailsFilePath, "/details");
+
+	if(access(customerDetailsFilePath, F_OK) == -1) {
+		send(socketfd, &result, sizeof(int), 0);
+		return;
+	}
+
+	result = EXISTS;
+
+	send(socketfd, &result, sizeof(int), 0);
+
+	read(socketfd, &customer, sizeof(CustomerInformation));
 
 	int fd = open(customerDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -927,10 +937,9 @@ void ChangeEmployeeDetails(int socketfd) {
 	char employeeId[14];
 	EmployeeInformation employee;
 	EmployeeInformation oldInfo;
+	EntityExistenceResult result = DOES_NOT_EXIST;
 
 	read(socketfd, employeeId, 14);
-
-	read(socketfd, &employee, sizeof(EmployeeInformation));
 
 	char employeeDetailsFilePath[237];
 
@@ -938,6 +947,15 @@ void ChangeEmployeeDetails(int socketfd) {
 	strcat(employeeDetailsFilePath, "/");
 	strcat(employeeDetailsFilePath, employeeId);
 	strcat(employeeDetailsFilePath, "/details");
+
+	if(access(employeeDetailsFilePath, F_OK) == -1) {
+		send(socketfd, &result, sizeof(int), 0);
+		return;
+	}
+
+	result = EXISTS;
+
+	read(socketfd, &employee, sizeof(EmployeeInformation));
 
 	int fd = open(employeeDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
 
@@ -958,3 +976,4 @@ void ChangeEmployeeDetails(int socketfd) {
 
 	close(fd);
 }
+

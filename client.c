@@ -30,6 +30,10 @@ void ChangeEmployeeDetails(int socketfd);
 void ViewCustomerTransactions(int socketfd);
 void AddFeedback(int socketfd);
 void ViewFeedbacks(int socketfd);
+void ApplyForLoan(int socketfd);
+void AssignLoansToEmployees(int socketfd);
+void ProcessAssignedLoans(int socketfd);
+void ViewLoanApplications(int socketfd);
 
 int main() {
     int sock = 0;
@@ -232,6 +236,11 @@ void SendManagerMenuResponse(int socketfd) {
 	{
 		case 1: 
 			break;
+		
+		case 3:
+			AssignLoansToEmployees(socketfd);
+			SendManagerMenuResponse(socketfd);
+			break;
 
 		case 4:
 			ViewFeedbacks(socketfd);
@@ -270,6 +279,11 @@ void SendEmployeeMenuResponse(int socketfd) {
 		
 		case 2:
 			ChangeCustomerDetails(socketfd);
+			SendEmployeeMenuResponse(socketfd);
+			break;
+		
+		case 4:
+			ProcessAssignedLoans(socketfd);
 			SendEmployeeMenuResponse(socketfd);
 			break;
 		
@@ -351,18 +365,28 @@ void SendCustomerMenuResponse(int socketfd) {
 			TransferFunds(socketfd);
 			SendCustomerMenuResponse(socketfd);
 			break;
-
+		
 		case 5:
-			ChangePassword(socketfd, CUSTOMER);
+			ApplyForLoan(socketfd);
 			SendCustomerMenuResponse(socketfd);
 			break;
 		
 		case 6:
+			ViewLoanApplications(socketfd);
+			SendCustomerMenuResponse(socketfd);
+			break;
+
+		case 7:
+			ChangePassword(socketfd, CUSTOMER);
+			SendCustomerMenuResponse(socketfd);
+			break;
+		
+		case 8:
 			AddFeedback(socketfd);
 			SendCustomerMenuResponse(socketfd);
 			break;
 		
-		case 7:
+		case 9:
 			ViewTransactionHistory(socketfd);
 			SendCustomerMenuResponse(socketfd);
 			break;
@@ -657,6 +681,142 @@ void ViewFeedbacks(int socketfd) {
 		printf("\n%s Says : %s", feedback.clientId, feedback.feedback);
 		printf("\n*********************************");
 	}
+
+	printf("\n######################################\n");
+}
+
+void ApplyForLoan(int socketfd) {
+	Loan loan;
+
+	loan.result = PENDING;
+
+	strcpy(loan.customerId, buffer);
+
+	printf("\nEnter Loan Amount : ");
+	scanf("%lf", &loan.amount);
+	getchar();
+
+	printf("\nEnter Loan Duration (in months) : ");
+	scanf("%d", &loan.duration);
+	getchar();
+
+	printf("\nEnter Interest Rate : ");
+	scanf("%f", &loan.interest);
+	getchar();
+
+	send(socketfd, &loan, sizeof(Loan), 0);
+}
+
+void AssignLoansToEmployees(int socketfd) {
+	Loan loan;
+	int totalLoans;
+
+	read(socketfd, &totalLoans, sizeof(totalLoans));
+
+	printf("\n######################################\n");
+	printf("\nTotal Loans : %d\n", totalLoans);
+
+	printf("\n*********************************");
+
+	char employeeId[14];
+	EntityExistenceResult result;
+
+	for(int i = 0; i < totalLoans; i++) {
+		read(socketfd, &loan, sizeof(Loan));
+		printf("\nLoan Amount : %lf", loan.amount);
+		printf("\nLoan Duration : %d", loan.duration);
+		printf("\nInterest Rate : %f", loan.interest);
+		printf("\nCustomer Id : %s", loan.customerId);
+		printf("\n*********************************");
+
+		do {
+			printf("\nEnter Employee Id to Assign Loan : ");
+			fgets(employeeId, 14, stdin);
+			employeeId[strcspn(employeeId, "\n")] = '\0';
+
+			send(socketfd, employeeId, BUFFER_SIZE, 0);
+			read(socketfd, &result, sizeof(EntityExistenceResult));
+
+			if(result != EXISTS) {
+				printf("\nNo such Employee Exists. Try Again\n");
+			}
+
+		}while(result != EXISTS);
+
+		printf("\nLoan Assigned to %s Successfully", employeeId);
+	}
+
+	printf("\n######################################\n");
+	printf("\nAll Loans Assigned Successfully\n");
+}
+
+void ProcessAssignedLoans(int socketfd) {
+	int totalLoans;
+
+	send(socketfd, buffer, BUFFER_SIZE, 0);
+
+	read(socketfd, &totalLoans, sizeof(totalLoans));
+
+	printf("\n######################################\n");
+	printf("\nTotal Loans : %d\n", totalLoans);
+
+	printf("\n*********************************");
+
+	char status;
+
+	for(int i = 0; i < totalLoans; i++) {
+		Loan loan;
+		read(socketfd, &loan, sizeof(Loan));
+		printf("\nCurrent Loan Number : %d\n", (i + 1));
+		printf("\nLoan Amount : %lf", loan.amount);
+		printf("\nLoan Duration : %d", loan.duration);
+		printf("\nInterest Rate : %f", loan.interest);
+		printf("\nCustomer Id : %s", loan.customerId);
+		printf("\n*********************************");
+
+		printf("\nType 'A' to Approve Loan or 'R' to Reject Loan : ");
+		scanf("%c", &status);
+		getchar();
+
+		if(status == 'A' || status == 'a') {
+			loan.result = APPROVED;
+			printf("\nLoan Application Approved\n");
+		} else {
+			loan.result = REJECTED;
+			printf("\nLoan Application Rejected\n");
+		}
+
+		send(socketfd, &loan, sizeof(Loan), 0);
+	}
+
+	printf("\n######################################\n");
+}
+
+void ViewLoanApplications(int socketfd) {
+	int totalLoans;
+
+	send(socketfd, buffer, BUFFER_SIZE, 0);
+
+	read(socketfd, &totalLoans, sizeof(totalLoans));
+
+	printf("\n######################################\n");
+	printf("\nTotal Loans : %d\n", totalLoans);
+
+	printf("\n*********************************");
+
+	for(int i = 0; i < totalLoans; i++) {
+		Loan loan;
+		read(socketfd, &loan, sizeof(Loan));
+		printf("\nCurrent Loan Number : %d\n", (i + 1));
+		printf("\nLoan Amount : %lf", loan.amount);
+		printf("\nLoan Duration : %d", loan.duration);
+		printf("\nInterest Rate : %f", loan.interest);
+		printf("\nCustomer Id : %s", loan.customerId);
+		printf("\nLoan Status : %s", loan.result == APPROVED ? "Approved" : "Rejected");
+		printf("\n*********************************");
+	}
+
+	printf("\nNOTE : Only Processed Loans are Displayed\n");
 
 	printf("\n######################################\n");
 }

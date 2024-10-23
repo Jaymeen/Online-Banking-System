@@ -12,6 +12,7 @@ extern const char *customerMenu;
 extern char adminCredentialsFilePath[212];
 extern char customerIndexesFilePath[216];
 extern char employeeIndexesFilePath[216];
+extern char loanIndexesFilePath[216];
 extern char allLoansPath[208];
 extern char feedbacksFilePath[210];
 
@@ -21,7 +22,7 @@ extern char customersDirectoryPath[210];
 
 typedef enum {
 	ACTIVE,
-	INACTIVE
+	CLOSED
 } Status;
 
 typedef enum {
@@ -45,8 +46,15 @@ typedef enum {
 
 typedef enum {
 	CREDIT,
-	DEBIT
+	DEBIT,
+	LOAN
 } TransactionType;
+
+typedef enum {
+	PENDING,
+	APPROVED,
+	REJECTED
+} LoanResult;
 
 typedef struct {
 	char loginId[14];
@@ -87,6 +95,16 @@ typedef struct {
 	char feedback[256];
 } Feedback;
 
+typedef struct {
+	char loanId[14];
+	char customerId[14];
+	char applicationDate[30];
+	LoanResult result;
+	float interest;
+	double amount;
+	int duration;
+} Loan;
+
 void init();
 void AcquireWriteLock(int fd);
 void AcquireReadLock(int fd);
@@ -94,5 +112,6 @@ void UnLockFile(int fd);
 
 void PrintEmployeeInformation(EmployeeInformation * employee);
 void PrintCustomerInformation(CustomerInformation * customer);
+void PrintLoanInformation(Loan * loan);
 
-#endif 
+#endif

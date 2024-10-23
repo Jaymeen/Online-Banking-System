@@ -36,6 +36,10 @@ void ChangeEmployeeDetails(int socketfd);
 void ViewCustomerTransactions(int socketfd);
 void AddFeedback(int socketfd);
 void ViewFeedbacks(int socketfd);
+void ApplyForLoan(int socketfd);
+void AssignLoansToEmployees(int socketfd);
+void ProcessAssignedLoans(int socketfd);
+void ViewLoanApplications(int socketfd);
 
 int main() {
 	init();
@@ -351,6 +355,11 @@ void GetManagerMenuResponse(int socketfd) {
 		case 2:
 			break;
 		
+		case 3:
+			AssignLoansToEmployees(socketfd);
+			GetManagerMenuResponse(socketfd);
+			break;
+		
 		case 4:
 			ViewFeedbacks(socketfd);
 			GetManagerMenuResponse(socketfd);
@@ -383,6 +392,11 @@ void GetEmployeeMenuResponse(int socketfd) {
 		
 		case 2:
 			ChangeCustomerDetails(socketfd);
+			GetEmployeeMenuResponse(socketfd);
+			break;
+		
+		case 4:
+			ProcessAssignedLoans(socketfd);
 			GetEmployeeMenuResponse(socketfd);
 			break;
 		
@@ -530,16 +544,26 @@ void GetCustomerMenuResponse(int socketfd) {
 			break;
 		
 		case 5:
-			ChangePasswordForClient(socketfd);
+			ApplyForLoan(socketfd);
 			GetCustomerMenuResponse(socketfd);
 			break;
 		
 		case 6:
+			ViewLoanApplications(socketfd);
+			GetCustomerMenuResponse(socketfd);
+			break;
+		
+		case 7:
+			ChangePasswordForClient(socketfd);
+			GetCustomerMenuResponse(socketfd);
+			break;
+		
+		case 8:
 			AddFeedback(socketfd);
 			GetCustomerMenuResponse(socketfd);
 			break;
 
-		case 7:
+		case 9:
 			SendTransactionsToCustomer(socketfd);
 			GetCustomerMenuResponse(socketfd);
 			break;
@@ -1080,5 +1104,226 @@ void ViewFeedbacks(int socketfd) {
 	}
 
 	UnLockFile(fd);
+	close(fd);
+}
+
+void ApplyForLoan(int socketfd) {
+	char customerRequestedLoansFilePath[235];
+	Loan loan;
+
+	read(socketfd, &loan, sizeof(Loan));
+
+	strcpy(customerRequestedLoansFilePath, customersDirectoryPath);
+	strcat(customerRequestedLoansFilePath, "/");
+	strcat(customerRequestedLoansFilePath, loan.customerId);
+	strcat(customerRequestedLoansFilePath, "/loans");
+
+	int currentIndexValue = GetNewIndex(loanIndexesFilePath);
+	
+	char currentLoanId[14] = "loan-";
+	char buffer[10];
+
+	snprintf(buffer, sizeof(buffer), "%d", currentIndexValue);
+
+	strcat(currentLoanId, buffer);
+
+	strcpy(loan.loanId, currentLoanId);
+	long currentTime;
+	
+	time(&currentTime);
+	char * tempString = ctime(&currentTime);
+
+	strcpy(loan.applicationDate, tempString);
+
+	int fd1 = open(allLoansPath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd1);
+
+	lseek(fd1, 0, SEEK_END);
+
+	write(fd1, &loan, sizeof(Loan));
+
+	UnLockFile(fd1);
+
+	close(fd1);
+}
+
+void AssignLoansToEmployees(int socketfd) {
+	int fd = open(allLoansPath, O_RDWR, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd);
+
+	int filesize = lseek(fd, 0, SEEK_END);
+	int totalLoans = filesize/sizeof(Loan);
+
+	lseek(fd, 0, SEEK_SET);
+
+	send(socketfd, &totalLoans, sizeof(totalLoans), 0);
+
+	Loan loan;
+	char employeeId[14];
+	char currEmployeeLoansFilePath[235];
+	EntityExistenceResult result;
+
+	for(int i = 0; i < totalLoans; i++) {
+		read(fd, &loan, sizeof(Loan));
+		send(socketfd, &loan, sizeof(Loan), 0);
+
+		do {
+			read(socketfd, employeeId, 14);
+
+			strcpy(currEmployeeLoansFilePath, employeesDirectoryPath);
+			strcat(currEmployeeLoansFilePath, "/");
+			strcat(currEmployeeLoansFilePath, employeeId);
+			strcat(currEmployeeLoansFilePath, "/loans");
+
+			result = DOES_NOT_EXIST;
+
+			if(access(currEmployeeLoansFilePath, F_OK) == -1) {
+				send(socketfd, &result, sizeof(EntityExistenceResult), 0);
+			}
+			else {
+				result = EXISTS;
+				send(socketfd, &result, sizeof(EntityExistenceResult), 0);
+			}
+		}
+		while(result != EXISTS);
+
+		int fd1 = open(currEmployeeLoansFilePath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
+
+		AcquireWriteLock(fd1);
+
+		lseek(fd1, 0, SEEK_END);
+
+		write(fd1, &loan, sizeof(Loan));
+
+		UnLockFile(fd1);
+
+		close(fd1);
+	}
+
+	ftruncate(fd, 0);
+
+	UnLockFile(fd);
+
+	close(fd);
+}
+
+void ProcessAssignedLoans(int socketfd) {
+	char employeeId[14];
+	char employeeLoansFilePath[235];
+
+	read(socketfd, employeeId, 14);
+
+	strcpy(employeeLoansFilePath, employeesDirectoryPath);
+	strcat(employeeLoansFilePath, "/");
+	strcat(employeeLoansFilePath, employeeId);
+	strcat(employeeLoansFilePath, "/loans");
+
+	int fd = open(employeeLoansFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd);
+
+	int filesize = lseek(fd, 0, SEEK_END);
+	int totalLoans = filesize/sizeof(Loan);
+
+	lseek(fd, 0, SEEK_SET);
+
+	send(socketfd, &totalLoans, sizeof(totalLoans), 0);
+
+	Loan loan[totalLoans];
+
+	for(int i = 0; i < totalLoans; i++) {
+		read(fd, &loan[i], sizeof(Loan));
+		send(socketfd, &loan[i], sizeof(Loan), 0);
+		read(socketfd, &loan[i], sizeof(Loan));
+	}
+
+	ftruncate(fd, 0);
+
+	UnLockFile(fd);
+
+	close(fd);
+
+	char customerDetailsFilePath[235];
+	char customerLoansFilePath[235];
+	char customerTransactionsFilePath[235];
+
+	for(int i = 0; i < totalLoans; i++) {
+		strcpy(customerDetailsFilePath, customersDirectoryPath);
+		strcat(customerDetailsFilePath, "/");
+		strcat(customerDetailsFilePath, loan[i].customerId);
+		strcpy(customerLoansFilePath, customerDetailsFilePath);
+		strcpy(customerTransactionsFilePath, customerDetailsFilePath);
+		strcat(customerDetailsFilePath, "/details");
+		strcat(customerLoansFilePath, "/loans");
+		strcat(customerTransactionsFilePath, "/transactions");
+
+		int fd = open(customerLoansFilePath, O_WRONLY | O_APPEND, S_IRUSR | S_IWUSR);
+
+		AcquireWriteLock(fd);
+
+		lseek(fd, 0, SEEK_END);
+
+		write(fd, &loan[i], sizeof(Loan));
+
+		UnLockFile(fd);
+
+		close(fd);
+
+		if(loan[i].result == APPROVED) {
+			CustomerInformation customer;
+			int fd2 = open(customerDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+			AcquireWriteLock(fd2);
+
+			read(fd2, &customer, sizeof(CustomerInformation));
+
+			lseek(fd2, 0, SEEK_SET);
+
+			customer.balance += loan[i].amount;
+
+			write(fd2, &customer, sizeof(CustomerInformation));
+
+			UnLockFile(fd2);
+
+			close(fd2);
+
+			LogTransaction(customerTransactionsFilePath, loan[i].customerId, customer.balance, LOAN);
+		}
+	}
+}
+
+void ViewLoanApplications(int socketfd) {
+	char customerId[14];
+	char customerLoansFilePath[235];
+
+	read(socketfd, customerId, 14);
+
+	strcpy(customerLoansFilePath, customersDirectoryPath);
+	strcat(customerLoansFilePath, "/");
+	strcat(customerLoansFilePath, customerId);
+	strcat(customerLoansFilePath, "/loans");
+
+	int fd = open(customerLoansFilePath, O_RDONLY, S_IRUSR | S_IWUSR);
+
+	AcquireReadLock(fd);
+
+	int filesize = lseek(fd, 0, SEEK_END);
+	int totalLoans = filesize/sizeof(Loan);
+
+	lseek(fd, 0, SEEK_SET);
+
+	send(socketfd, &totalLoans, sizeof(totalLoans), 0);
+
+	Loan loan;
+
+	for(int i = 0; i < totalLoans; i++) {
+		read(fd, &loan, sizeof(Loan));
+		send(socketfd, &loan, sizeof(Loan), 0);
+	}
+
+	UnLockFile(fd);
+
 	close(fd);
 }

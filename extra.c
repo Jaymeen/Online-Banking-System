@@ -28,11 +28,14 @@ void main() {
 void ResetIndexValues(char * directoryPath) {
 	char customerIndexesFilePath[216];
 	char employeeIndexesFilePath[216];
+	char loanIndexesFilePath[216];
 
 	strcpy(customerIndexesFilePath, directoryPath);
 	strcat(customerIndexesFilePath, "/customerindexes");
 	strcpy(employeeIndexesFilePath, directoryPath);
 	strcat(employeeIndexesFilePath, "/employeeindexes");
+	strcpy(loanIndexesFilePath, directoryPath);
+	strcat(loanIndexesFilePath, "/loanindexes");
 
 	int value;
 
@@ -40,12 +43,15 @@ void ResetIndexValues(char * directoryPath) {
 
 	int fd1 = open(customerIndexesFilePath, O_TRUNC | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 	int fd2 = open(employeeIndexesFilePath, O_TRUNC | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+	int fd3 = open(loanIndexesFilePath, O_TRUNC | O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
 
 	write(fd1, &value, sizeof(value));
 	write(fd2, &value, sizeof(value));
+	write(fd3, &value, sizeof(value));
 
 	close(fd1);
 	close(fd2);
+	close(fd3);
 }
 
 void CreateAllLoansFile(char * directoryPath) {

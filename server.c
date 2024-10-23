@@ -373,9 +373,11 @@ void GetEmployeeMenuResponse(int socketfd) {
 			break;
 		
 		case 2:
+			ChangeCustomerDetails(socketfd);
+			GetEmployeeMenuResponse(socketfd);
 			break;
 		
-		case 5:
+		case 6:
 			ChangePasswordForClient(socketfd);
 			GetEmployeeMenuResponse(socketfd);
 			break;

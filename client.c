@@ -260,7 +260,12 @@ void SendEmployeeMenuResponse(int socketfd) {
 			SendEmployeeMenuResponse(socketfd);
 			break;
 		
-		case 5:
+		case 2:
+			ChangeCustomerDetails(socketfd);
+			SendEmployeeMenuResponse(socketfd);
+			break;
+		
+		case 6:
 			ChangePassword(socketfd, EMPLOYEE);
 			SendEmployeeMenuResponse(socketfd);
 			break;

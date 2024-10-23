@@ -55,13 +55,13 @@ typedef struct {
 typedef struct {
 	char fullname[25];
 	char email[50];
-	char contact[11];
+	char contact[15];
 } PersonalInformation;
 
 typedef struct {
 	PersonalInformation personalinformation;
 	char userid[14];
-	char password[20];
+	char password[14];
 	ClientType employeetype;
 	Status status;
 } EmployeeInformation;
@@ -70,7 +70,7 @@ typedef struct {
 	PersonalInformation personalinformation;
 	double balance;
 	char userid[14];
-	char password[20];
+	char password[14];
 	Status status;
 } CustomerInformation;
 
@@ -87,5 +87,6 @@ void AcquireReadLock(int fd);
 void UnLockFile(int fd);
 
 void PrintEmployeeInformation(EmployeeInformation * employee);
+void PrintCustomerInformation(CustomerInformation * customer);
 
 #endif 

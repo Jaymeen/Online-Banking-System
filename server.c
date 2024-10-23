@@ -31,6 +31,8 @@ void SendTransactionsToCustomer(int socketfd);
 void TransferFunds(int socketfd);
 void LogTransaction(char * filePath, char * customerId, double amount, TransactionType type);
 void ChangePasswordForClient(int socketfd);
+void ChangeCustomerDetails(int socketfd);
+void ChangeEmployeeDetails(int socketfd);
 
 int main() {
 	init();
@@ -190,6 +192,13 @@ void GetAdminMenuResponse(int socketfd) {
 			break;
 		
 		case 2:
+			ChangeCustomerDetails(socketfd);
+			GetAdminMenuResponse(socketfd);
+			break;
+		
+		case 3:
+			ChangeEmployeeDetails(socketfd);
+			GetAdminMenuResponse(socketfd);
 			break;
 		
 		case 4:
@@ -427,7 +436,7 @@ void AddNewCustomer(int socketfd) {
 	close(fd2);
 	close(fd1);
 
-	send(socketfd, customer.userid, strlen(customer.userid), 0);
+	send(socketfd, customer.userid, 14, 0);
 }
 
 LoginResult VerifyCustomerCredentials(int socketfd, Credentials * creds) {
@@ -878,3 +887,74 @@ void ChangePasswordForClient(int socketfd) {
 	}
 }
 
+void ChangeCustomerDetails(int socketfd) {
+	char customerId[14];
+	CustomerInformation customer;
+	CustomerInformation oldInfo;
+
+	read(socketfd, customerId, 14);
+
+	read(socketfd, &customer, sizeof(CustomerInformation));
+
+	char customerDetailsFilePath[237];
+
+	strcpy(customerDetailsFilePath, customersDirectoryPath);
+	strcat(customerDetailsFilePath, "/");
+	strcat(customerDetailsFilePath, customerId);
+	strcat(customerDetailsFilePath, "/details");
+
+	int fd = open(customerDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd);
+
+	read(fd, &oldInfo, sizeof(CustomerInformation));
+
+	strcpy(oldInfo.personalinformation.fullname, customer.personalinformation.fullname);
+	strcpy(oldInfo.personalinformation.email, customer.personalinformation.email);
+	strcpy(oldInfo.personalinformation.contact, customer.personalinformation.contact);
+	strcpy(oldInfo.password, customer.password);
+
+	lseek(fd, 0, SEEK_SET);
+
+	write(fd, &oldInfo, sizeof(CustomerInformation));
+
+	UnLockFile(fd);
+
+	close(fd);
+}
+
+void ChangeEmployeeDetails(int socketfd) {
+	char employeeId[14];
+	EmployeeInformation employee;
+	EmployeeInformation oldInfo;
+
+	read(socketfd, employeeId, 14);
+
+	read(socketfd, &employee, sizeof(EmployeeInformation));
+
+	char employeeDetailsFilePath[237];
+
+	strcpy(employeeDetailsFilePath, employeesDirectoryPath);
+	strcat(employeeDetailsFilePath, "/");
+	strcat(employeeDetailsFilePath, employeeId);
+	strcat(employeeDetailsFilePath, "/details");
+
+	int fd = open(employeeDetailsFilePath, O_RDWR, S_IRUSR | S_IWUSR);
+
+	AcquireWriteLock(fd);
+
+	read(fd, &oldInfo, sizeof(EmployeeInformation));
+
+	strcpy(oldInfo.personalinformation.fullname, employee.personalinformation.fullname);
+	strcpy(oldInfo.personalinformation.email, employee.personalinformation.email);
+	strcpy(oldInfo.personalinformation.contact, employee.personalinformation.contact);
+	strcpy(oldInfo.password, employee.password);
+
+	lseek(fd, 0, SEEK_SET);
+
+	write(fd, &oldInfo, sizeof(EmployeeInformation));
+
+	UnLockFile(fd);
+
+	close(fd);
+}
